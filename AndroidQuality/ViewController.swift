@@ -16,9 +16,9 @@ class ViewController: UIViewController {
     
     var imagePickerController = UIImagePickerController()
     let videoPlayerViewController = AVPlayerViewController()
-
+    
     lazy var imageView: UIImageView = {
-       let imageView = UIImageView()
+        let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
         return imageView
@@ -29,7 +29,9 @@ class ViewController: UIViewController {
         view.isHidden = true
         return view
     }()
-
+    
+    var compressedVideoData: NSData?
+    
     lazy var assetButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitleColor(.white, for: .normal)
@@ -57,10 +59,37 @@ class ViewController: UIViewController {
     @objc fileprivate func handleSave() {
         if let image = imageView.image  {
             UIImageWriteToSavedPhotosAlbum(image, self, #selector(image(_:didFinishSavingWithError:contextInfo:)), nil)
+        } else if let compressedVideoData = compressedVideoData {
+            DispatchQueue.global(qos: .background).async {
+                let documentsPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0];
+                let filePath="\(documentsPath)/tempFile.mp4"
+                DispatchQueue.main.async {
+                    compressedVideoData.write(toFile: filePath, atomically: true)
+                    PHPhotoLibrary.shared().performChanges({
+                        PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: URL(fileURLWithPath: filePath))
+                    }) { completed, error in
+                        if let error = error {
+                            print("Video was not saved: \(error.localizedDescription)")
+                        }
+                        print("Saved video!")
+                    }
+                }
+            }
         } else {
             print("Image not saved!")
         }
     }
+    
+    fileprivate func playVideo(compressedURL: URL) {
+        DispatchQueue.main.async {
+            self.videoPlayerViewController.showsPlaybackControls = false
+            self.videoPlayerViewController.player = AVPlayer(url: compressedURL)
+            self.videoView.addSubview(self.videoPlayerViewController.view)
+            self.videoPlayerViewController.view.frame = self.videoView.bounds
+            self.videoPlayerViewController.player?.play()
+        }
+    }
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -87,14 +116,15 @@ class ViewController: UIViewController {
     override var preferredStatusBarStyle: UIStatusBarStyle {
         return .lightContent
     }
-
+    
     
 }
 
 extension ViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-
+        
         if let image = info[.originalImage] as? UIImage {
+            compressedVideoData = nil
             videoView.isHidden = true
             let newImage = image.resizeWithPercent(percentage: 0.02)
             imageView.image = newImage
@@ -104,63 +134,37 @@ extension ViewController: UIImagePickerControllerDelegate, UINavigationControlle
             videoView.isHidden = false
             print("Video selected.")
             print("videoURL:\(String(describing: videoURL))")
-            let videoData = NSData(contentsOf: videoURL)
-            print("File size before compression: \(Double(videoData!.length / 1048576)) mb")
+            guard let videoData = NSData(contentsOf: videoURL) else { return }
+            print("File size before compression: \(Double(videoData.length / 1048576)) mb")
             let compressedURL = NSURL.fileURL(withPath: NSTemporaryDirectory() + NSUUID().uuidString + ".MP4")
             compressVideo(inputURL: videoURL, outputURL: compressedURL) { (session) in
                 
                 switch session.status {
-                case .unknown:
-                    break
-                case .waiting:
-                    break
-                case .exporting:
-                    break
                 case .completed:
-                    guard let compressedData = NSData(contentsOf: compressedURL) else {
-                        return
-                    }
+                    guard let compressedData = NSData(contentsOf: compressedURL) else { return }
+                    self.compressedVideoData = compressedData
                     print("File size after compression: \(Double(compressedData.length / 1048576)) mb")
-                    DispatchQueue.main.async {
-                        self.videoPlayerViewController.showsPlaybackControls = false
-                        self.videoPlayerViewController.player = AVPlayer(url: compressedURL)
-                        self.videoView.addSubview(self.videoPlayerViewController.view)
-                        self.videoPlayerViewController.view.frame = self.videoView.bounds
-                        self.videoPlayerViewController.player?.play()
-                        self.dismiss(animated: true, completion: nil)
-                    }
-                    
-                case .failed:
-                    break
-                case .cancelled:
-                    break
+                    self.playVideo(compressedURL: compressedURL)
+                    self.dismiss(animated: true, completion: nil)
+                default:
+                    self.dismiss(animated: true, completion: nil)
                 }
             }
-            
-       
-            
-
         }
     }
     
     func compressVideo(inputURL: URL, outputURL: URL, handler:@escaping (_ session: AVAssetExportSession)-> Void)
     {
         let urlAsset = AVURLAsset(url: inputURL, options: nil)
-        
-        let exportSession = AVAssetExportSession(asset: urlAsset, presetName: AVAssetExportPresetLowQuality)
-        
-        exportSession!.outputURL = outputURL
-        
-        exportSession!.outputFileType = AVFileType.mov
-        
-        exportSession!.shouldOptimizeForNetworkUse = true
-        
-        exportSession!.exportAsynchronously { () -> Void in
-            handler(exportSession!)
+        guard let exportSession = AVAssetExportSession(asset: urlAsset, presetName: AVAssetExportPresetLowQuality) else { return }
+        exportSession.outputURL = outputURL
+        exportSession.outputFileType = AVFileType.mov
+        exportSession.shouldOptimizeForNetworkUse = true
+        exportSession.exportAsynchronously { () -> Void in
+            handler(exportSession)
         }
-        
     }
-
+    
     //MARK: - Add image to Library
     @objc func image(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
         if let error = error {
