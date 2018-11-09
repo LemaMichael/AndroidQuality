@@ -9,17 +9,25 @@
 import UIKit
 import Photos
 import MobileCoreServices
+import AVKit
+
 
 class ViewController: UIViewController {
     
     var imagePickerController = UIImagePickerController()
-    
-    
+    let videoPlayerViewController = AVPlayerViewController()
+
     lazy var imageView: UIImageView = {
        let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
         return imageView
+    }()
+    
+    lazy var videoView: UIView = {
+        let view = UIView()
+        view.isHidden = true
+        return view
     }()
 
     lazy var assetButton: UIButton = {
@@ -47,11 +55,11 @@ class ViewController: UIViewController {
     }
     
     @objc fileprivate func handleSave() {
-        guard let image = imageView.image else {
+        if let image = imageView.image  {
+            UIImageWriteToSavedPhotosAlbum(image, self, #selector(image(_:didFinishSavingWithError:contextInfo:)), nil)
+        } else {
             print("Image not saved!")
-            return
         }
-        UIImageWriteToSavedPhotosAlbum(image, self, #selector(image(_:didFinishSavingWithError:contextInfo:)), nil)
     }
     
     override func viewDidLoad() {
@@ -60,18 +68,20 @@ class ViewController: UIViewController {
         view.addSubview(assetButton)
         view.addSubview(saveButton)
         view.addSubview(imageView)
+        imageView.addSubview(videoView)
         imagePickerController.delegate = self
         setupViews()
     }
     
     fileprivate func setupViews() {
-        assetButton.anchor(top: nil, bottom: nil, left: nil, right: nil, paddingTop: 0, paddingBottom: 0, paddingLeft: 0, paddingRight: 0, width: 200, height: 50)
-        assetButton.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
-        assetButton.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: 1).isActive = true
+        saveButton.anchor(top: nil, bottom: view.layoutMarginsGuide.bottomAnchor, left: assetButton.leftAnchor, right: assetButton.rightAnchor, paddingTop: 0, paddingBottom: 0, paddingLeft: 0, paddingRight: 0, width: 200, height: 50)
+        saveButton.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
         
-        imageView.anchor(top: view.layoutMarginsGuide.topAnchor, bottom: assetButton.topAnchor, left: view.leftAnchor, right: view.rightAnchor, paddingTop: 0, paddingBottom: 10, paddingLeft: 0, paddingRight: 0, width: 0, height: 0)
+        assetButton.anchor(top: nil, bottom: saveButton.topAnchor, left: saveButton.leftAnchor, right: saveButton.rightAnchor, paddingTop: 0, paddingBottom: 0, paddingLeft: 0, paddingRight: 0, width: 0, height: 50)
         
-        saveButton.anchor(top: assetButton.bottomAnchor, bottom: nil, left: assetButton.leftAnchor, right: assetButton.rightAnchor, paddingTop: 0, paddingBottom: 0, paddingLeft: 0, paddingRight: 0, width: 0, height: 50)
+        imageView.anchor(top: view.layoutMarginsGuide.topAnchor, bottom: nil, left: view.leftAnchor, right: view.rightAnchor, paddingTop: 0, paddingBottom: 10, paddingLeft: 0, paddingRight: 0, width: 0, height: UIScreen.main.bounds.height / 2)
+        
+        videoView.anchor(top: imageView.topAnchor, bottom: imageView.bottomAnchor, left: imageView.leftAnchor, right: imageView.rightAnchor, paddingTop: 0, paddingBottom: 0, paddingLeft: 0, paddingRight: 0, width: 0, height: 0)
     }
     
     override var preferredStatusBarStyle: UIStatusBarStyle {
@@ -83,22 +93,72 @@ class ViewController: UIViewController {
 
 extension ViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-//        guard let videoURL = info[UIImagePickerController.InfoKey.mediaURL] as? URL  else { return }
-//        print("videoURL:\(String(describing: videoURL))")
-//        let videoData = NSData(contentsOf: videoURL)
-//
-//        self.dismiss(animated: true, completion: nil)
+
         if let image = info[.originalImage] as? UIImage {
+            videoView.isHidden = true
             let newImage = image.resizeWithPercent(percentage: 0.02)
             imageView.image = newImage
+            self.dismiss(animated: true, completion: nil)
         }
         else if let videoURL = info[.mediaURL] as? URL {
-            //picker.videoQuality = UIImagePickerControllerQualityTypeLow
+            videoView.isHidden = false
             print("Video selected.")
             print("videoURL:\(String(describing: videoURL))")
+            let videoData = NSData(contentsOf: videoURL)
+            print("File size before compression: \(Double(videoData!.length / 1048576)) mb")
+            let compressedURL = NSURL.fileURL(withPath: NSTemporaryDirectory() + NSUUID().uuidString + ".MP4")
+            compressVideo(inputURL: videoURL, outputURL: compressedURL) { (session) in
+                
+                switch session.status {
+                case .unknown:
+                    break
+                case .waiting:
+                    break
+                case .exporting:
+                    break
+                case .completed:
+                    guard let compressedData = NSData(contentsOf: compressedURL) else {
+                        return
+                    }
+                    print("File size after compression: \(Double(compressedData.length / 1048576)) mb")
+                    DispatchQueue.main.async {
+                        self.videoPlayerViewController.showsPlaybackControls = false
+                        self.videoPlayerViewController.player = AVPlayer(url: compressedURL)
+                        self.videoView.addSubview(self.videoPlayerViewController.view)
+                        self.videoPlayerViewController.view.frame = self.videoView.bounds
+                        self.videoPlayerViewController.player?.play()
+                        self.dismiss(animated: true, completion: nil)
+                    }
+                    
+                case .failed:
+                    break
+                case .cancelled:
+                    break
+                }
+            }
+            
+       
+            
 
         }
-        self.dismiss(animated: true, completion: nil)
+    }
+    
+    func compressVideo(inputURL: URL, outputURL: URL, handler:@escaping (_ session: AVAssetExportSession)-> Void)
+    {
+        let urlAsset = AVURLAsset(url: inputURL, options: nil)
+        
+        let exportSession = AVAssetExportSession(asset: urlAsset, presetName: AVAssetExportPresetLowQuality)
+        
+        exportSession!.outputURL = outputURL
+        
+        exportSession!.outputFileType = AVFileType.mov
+        
+        exportSession!.shouldOptimizeForNetworkUse = true
+        
+        exportSession!.exportAsynchronously { () -> Void in
+            handler(exportSession!)
+        }
+        
     }
 
     //MARK: - Add image to Library

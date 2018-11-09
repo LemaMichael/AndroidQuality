@@ -6,62 +6,47 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "AndroidQuality/ViewController.swift"
-            timestampString = "563427719.51824"
+            timestampString = "563432882.995402"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "51"
-            endingLineNumber = "51"
-            landmarkName = "handleSave()"
+            startingLineNumber = "119"
+            endingLineNumber = "119"
+            landmarkName = "imagePickerController(_:didFinishPickingMediaWithInfo:)"
             landmarkType = "7">
             <Locations>
                <Location
-                  shouldBeEnabled = "Yes"
+                  shouldBeEnabled = "No"
                   ignoreCount = "0"
                   continueAfterRunningActions = "No"
-                  symbolName = "AndroidQuality.ViewController.(handleSave in _89AD7F89686DC0489C428FB0DE0602FB)() -&gt; ()"
+                  symbolName = "closure #1 (__C.AVAssetExportSession) -&gt; () in AndroidQuality.ViewController.imagePickerController(_: __C.UIImagePickerController, didFinishPickingMediaWithInfo: Swift.Dictionary&lt;__C.UIImagePickerControllerInfoKey, Any&gt;) -&gt; ()"
                   moduleName = "AndroidQuality"
                   usesParentBreakpointCondition = "Yes"
                   urlString = "file:///Users/michael/AndroidQuality/AndroidQuality/ViewController.swift"
-                  timestampString = "563427719.655623"
+                  timestampString = "563432883.164089"
                   startingColumnNumber = "9223372036854775807"
                   endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "51"
-                  endingLineNumber = "51"
-                  offsetFromSymbolStart = "210">
+                  startingLineNumber = "119"
+                  endingLineNumber = "119"
+                  offsetFromSymbolStart = "165">
                </Location>
                <Location
                   shouldBeEnabled = "Yes"
                   ignoreCount = "0"
                   continueAfterRunningActions = "No"
-                  symbolName = "AndroidQuality.ViewController.(handleSave in _89AD7F89686DC0489C428FB0DE0602FB)() -&gt; ()"
+                  symbolName = "closure #1 (__C.AVAssetExportSession) -&gt; () in AndroidQuality.ViewController.imagePickerController(_: __C.UIImagePickerController, didFinishPickingMediaWithInfo: Swift.Dictionary&lt;__C.UIImagePickerControllerInfoKey, Any&gt;) -&gt; ()"
                   moduleName = "eval101.dylib"
                   usesParentBreakpointCondition = "Yes"
                   urlString = "file:///Users/michael/AndroidQuality/AndroidQuality/ViewController.swift"
-                  timestampString = "563427727.132453"
+                  timestampString = "563432963.3655829"
                   startingColumnNumber = "9223372036854775807"
                   endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "51"
-                  endingLineNumber = "51"
-                  offsetFromSymbolStart = "210">
-               </Location>
-               <Location
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "AndroidQuality.ViewController.(handleSave in _89AD7F89686DC0489C428FB0DE0602FB)() -&gt; ()"
-                  moduleName = "eval102.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/michael/AndroidQuality/AndroidQuality/ViewController.swift"
-                  timestampString = "563427732.5485229"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "51"
-                  endingLineNumber = "51"
-                  offsetFromSymbolStart = "210">
+                  startingLineNumber = "120"
+                  endingLineNumber = "120"
+                  offsetFromSymbolStart = "165">
                </Location>
             </Locations>
          </BreakpointContent>
