@@ -11,5 +11,9 @@ Android Quality now available for iPhone!
  <img src = "/Demo/Demo.gif" height = "285" > <img src = "/Demo/Demo2.gif" height = "285">
 </p>
 
+
 ## License
 AndroidQuality is released under the MIT license. See [LICENSE](https://github.com/LemaMichael/AndroidQuality/blob/master/LICENSE) for more information.
+
+
+*NOTE:* It's a joke! :squirrel:
